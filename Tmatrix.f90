@@ -27,7 +27,7 @@ select case(m)
 case(1)
   n=n_/2
 do j = 1,n
-   xx(j) =exp(-dble(n-j)/dble(n)*6.0D0)*(beta/2.0D0-0.02D0)
+   xx(j) =exp(-dble(n-j)/dble(n)*6.8D0)*(beta/2.0D0-0.02D0)
   !xx(n+1-j)=(1.0D0-exp(-dble(n-j)/dble(n)*5.0D0))*beta/2.0D0+0.01D0
 enddo
 do j=n+1,n_
@@ -1557,7 +1557,7 @@ program main
   lambda= 0.045D0
   omega0=1.0D0/(3.0D0*lambda*ntot)**(1.0D0/3.0D0)
 
-mu=0.5D0
+mu=0.4D0
 do i=1,5
   write(14,*)i
   write(14,*)'t=',t

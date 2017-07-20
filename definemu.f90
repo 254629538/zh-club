@@ -251,7 +251,7 @@ do i1 = 1,n_
     ! midmatrix1(i1,i2,1)=real(mid)
     ! midmatrix1(i1,i2,2)=aimag(mid)
 
-    ! mid=log(eta*cmplx(pi_q(i1,i2,1),pi_q(i1,i2,2))/cmplx(eta+8D0*pi*Mpair0(i1,i2,1),8D0*pi*Mpair0(i1,i2,2))*cmplx(gamma_q(i1,i2,1),gamma_q(i1,i2,2))*cmplx(pi_q(i1,i2,1)-eta-Mpair0(i1,i2,1),pi_q(i1,i2,2)-Mpair0(i1,i2,2)))
+    ! mid=log(cmplx(pi_q(i1,i2,1),pi_q(i1,i2,2))/cmplx(eta+8D0*pi*Mpair0(i1,i2,1),8D0*pi*Mpair0(i1,i2,2)))
     ! midmatrix4(i1,i2,1)=-real(mid)
     ! midmatrix4(i1,i2,2)=-aimag(mid)
 
@@ -321,6 +321,9 @@ s3=midmatrix4(1,1,1)
 ! iny=0
 ! iny=midmatrix3(:,1,1)
 ! call intk(n_,k,iny,s3)
+! midmatrix4=0
+! call SFT_ktox(midmatrix1,midmatrix4)
+! s5=midmatrix4(1,1,1)
 call gammg_z(mu,s5)
 
 write(13,*)'s0',s0
@@ -447,12 +450,26 @@ subroutine gammg_z(mu,gamma_g)
   n0 = 1000
   step = (maxl-minl)/dble(n0)
 
-! do i1=1,n_
 
+if (abs(eta)<=0.05D0) then
+  a = minl
+  b = minl + step
+  r0 = 0.0D0
+  do i3 = 1,n0
+    answer = 0
+      Do i = 1,nk
+        answer = answer + ak1(i)*y1((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),mu)
+      end do
+    answer = answer*(b-a)/2.0D0
+    r0 = r0+answer
+    a = b
+    b = b+step
+  end do
+  gamma_g=-0.5D0*t*r0*0.05066059182D0
+else
   a1= minl1
   b1= minl1+step
   r0 = 0.0D0
-
 do i1 = 1,n0
   a = minl
   b = minl + step
@@ -471,21 +488,28 @@ do i1 = 1,n0
   a1=b1
   b1=b1+step
 end do
-
   gamma_g=r0
-! end do
-
   gamma_g=eta*t/pi*gamma_g*0.05066059182D0
+end if
 contains
   Function y(z,q,mu)
      Implicit none
      Real*8:: y
      Real*8:: z,mu,beta,ep,q
-     complex*16::mid
+
      beta=1.0D0/t
      ep=q**2-4.0D0*mu
      y=q**2*log(dabs(1D0-exp(-beta/2D0*(z+ep))))/(4D0*eta**2+z)/sqrt(z)
    End Function y
+   Function y1(q,mu)
+      Implicit none
+      Real*8:: y1
+      Real*8:: mu,beta,ep,q
+
+      beta=1.0D0/t
+      ep=q**2-4.0D0*mu
+      y1=q**2*log(dabs(1D0-exp(-beta/2D0*ep)))
+    End Function y1
 end subroutine gammg_z
 
 subroutine intk(n,x,y,r)
