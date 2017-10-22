@@ -11,8 +11,9 @@ real*8:: g0k(n_,n_,2),g0kt(n_,n_,2),self_xt(n_,n_,2),self0(n_,n_,2),self1(n_,n_,
 real*8:: midmatrix1(n_,n_,2),midmatrix2(n_,n_,2),midmatrix3(n_,n_,2),midmatrix4(n_,n_,2),iny(n_),iw_G0(n_),lnG0(n_),g_old(n_,n_),g_bijiao(n_,n_),dU1(n_,n_,2),gamma_g(n_)
 real*8:: ep,u0,u2,u3,num1,num2,s0,s2,s3,s4,s5
 real*8::time1,time2
+real*8:: m11(n_,n_,2)
 integer::i1,i2,loop,I_compare
-complex*16::mid,mid1
+complex*16::mid,mid1,mid2
 
 mu=mu0-vext
 
@@ -34,7 +35,7 @@ enddo
 !---------------------------------------
 ! define  M(q,omrgaB)=M0+M1
  call intMpair(mu,beta,Mpair)
- write(12,*)'Mpair=',Mpair(:,1,1)
+ write(12,*)'Mpair=',Mpair(:,n_,1)
 !define M0(q,omegaB) = -1/16pi*sqrt(ep-2i*omegaB)
 ep = 0.0D0
 mid = cmplx(0.0D0,0.0D0)
@@ -46,10 +47,11 @@ do i1 = 1,n_
     Mpair0(i1,i2,2) = -aimag(mid)
   enddo
 enddo
-write(12,*)'Mpair0=',Mpair0(:,1,1)
+Mpair0(:,n_,2) = 0D0
+write(12,*)'Mpair0=',Mpair0(1,:,1)
 !-------------------------------------------
 call intgamma(mu,gamma0)
-write(12,*)'gamma0',gamma0(1,:,1)
+! write(12,*)'gamma0',gamma0(1,:,1)
 call SFT_ktox(gamma0,gamma0_xt)
 !---------------------------------------
 ! do i1 = 1,n_
@@ -125,7 +127,9 @@ do i1 = 1,n_
     pi_q(i1,i2,2) = 8D0*pi*(Mpair(i1,i2,2)+Mpair0(i1,i2,2)+midmatrix2(i1,i2,2))
   enddo
 enddo
-
+m11=midmatrix2
+write(12,*)'pi_q',pi_q(1,:,1)
+write(12,*)'m11',m11(1,:,1)
 !-----------------------------------------------------------------
 !define gamma(q,omegaB) = gamma_q = 1/(eta/(8pi)+Mpair)
 do i1 = 1,n_
@@ -138,6 +142,12 @@ do i1 = 1,n_
   midmatrix3(i1,i2,2) = gamma_q(i1,i2,2) - aimag(mid)
   enddo
 enddo
+
+! do i1 = 1,n_
+!   if (abs(midmatrix3(i1,n_,1))>=20D0) then
+!     midmatrix3(i1,n_,1)=0D0
+!   endif
+! enddo
 
 write(12,*)'gamma_q',gamma_q(1,:,1)
 write(12,*)'midmatrix3',midmatrix3(:,n_,1)
@@ -152,7 +162,7 @@ midmatrix2 = 0.0D0
 
 call SFT_ktox(midmatrix4,midmatrix1)
 gamma1_xt=midmatrix1
-write(12,*)'gamma1_xt',gamma1_xt(1,:,1)
+! write(12,*)'gamma1_xt',gamma1_xt(1,:,1)
 
 midmatrix1 = 0.0D0
 midmatrix2 = 0.0D0
@@ -177,16 +187,16 @@ do i1=1,n_
   enddo
 enddo
 
-write(12,*)'g0_x_t',g0_x_t(1,:,1)
-write(12,*)'self_xt',self_xt(1,:,1)
+! write(12,*)'g0_x_t',g0_x_t(1,:,1)
+! write(12,*)'self_xt',self_xt(1,:,1)
 
  call SFT_xtok(self_xt,midmatrix3)
- write(12,*)'midmatrix3',midmatrix3(1,:,1)
+ ! write(12,*)'midmatrix3',midmatrix3(1,:,1)
  call SFT_tautoomegaF(midmatrix3,midmatrix4,beta)
  self1=midmatrix4
- write(12,*)'self1',self1(:,1,1)
- write(12,*)'self0',self0(:,1,1)
- write(12,*)'self0+self1',self0(:,1,1)+self1(:,1,1)
+ ! write(12,*)'self1',self1(:,1,1)
+ ! write(12,*)'self0',self0(:,1,1)
+ ! write(12,*)'self0+self1',self0(:,1,1)+self1(:,1,1)
 !----------------------------
 ! call CPU_TIME(time2)
 ! write(*,*)'time',time2
@@ -211,7 +221,7 @@ write(12,*)'g_k',g_k(:,1,1)
    do i1=1,n_
      do i2=1,n_
        g_bijiao(i1,i2)=g_k(i1,i2,1)-g_old(i1,i2)
-       if(abs(g_bijiao(i1,i2))>1d-4) then
+       if(abs(g_bijiao(i1,i2))>1d-6) then
          I_compare=I_compare+1
        end if
      end do
@@ -222,6 +232,7 @@ write(12,*)'g_k',g_k(:,1,1)
 !------------------------------
 !------------end of main loop -----------------
 !-----------------------------
+!m11(:,407:(n_-1),1)=0D0
 g1k=0
 do i1 = 1,n_
   do i2 = 1,n_
@@ -251,19 +262,24 @@ do i1 = 1,n_
     ! midmatrix1(i1,i2,1)=real(mid)
     ! midmatrix1(i1,i2,2)=aimag(mid)
 
-    ! mid=log(cmplx(pi_q(i1,i2,1),pi_q(i1,i2,2))/cmplx(eta+8D0*pi*Mpair0(i1,i2,1),8D0*pi*Mpair0(i1,i2,2)))
-    ! midmatrix4(i1,i2,1)=-real(mid)
-    ! midmatrix4(i1,i2,2)=-aimag(mid)
+    ! if (abs(m11(i1,i2,1))<=1D-5) then
+    !   m11(i1,i2,1)=0D0
+    ! end if
+    mid2=cmplx(eta+8D0*pi*Mpair0(i1,i2,1),8D0*pi*Mpair0(i1,i2,2))
+    mid=log(cmplx(1D0,0D0)+8D0*pi*cmplx(Mpair(i1,i2,1)+m11(i1,i2,1),Mpair(i1,i2,2)+m11(i1,i2,2))/mid2)!(cmplx(pi_q(i1,i2,1),pi_q(i1,i2,2))-mid2)/mid2)!cmplx(8D0*pi*Mpair(i1,i2,1),8D0*pi*Mpair(i1,i2,2))/mid2)
+    midmatrix4(i1,i2,1)=-real(mid)
+    midmatrix4(i1,i2,2)=-aimag(mid)
 
     ! iw_G0(i1)=2.0D0*ep/(exp(ep/t)+1.0D0)
     ! lnG0(i1)=2D0*t*log(exp(-ep/t)+1.0D0)
   enddo
 enddo
-! write(13,*)pi_q(:,1,1)
+
+write(12,*)'midmatrix4',midmatrix4(:,n_,1)
 !------------------------------
 tau=-tau
 call SFT_omegaFtotau(g1k,g1k_t,beta)
-write(12,*)'g1k_t',g1k_t(:,1,1)
+! write(12,*)'g1k_t',g1k_t(:,1,1)
 dU1=0
 call SFT_omegaFtotau(midmatrix3,dU1,beta)
 ! write(13,*)'u1=',dU1(:,1,1)
@@ -273,8 +289,8 @@ call SFT_omegaFtotau(midmatrix2,midmatrix3,beta)
 ! midmatrix2=0.0D0
 ! call SFT_omegaFtotau(midmatrix1,midmatrix2,beta)
 ! ! write(13,*)'s2=',midmatrix2(:,1,1)
-! midmatrix1=0.0D0
-! call SFT_omegaBtotau(midmatrix4,midmatrix1,beta)
+midmatrix1=0.0D0
+call SFT_omegaBtotau1(midmatrix4,midmatrix1,beta)
 ! write(13,*)'s3=',midmatrix1(:,1,1)
 tau=-tau
 
@@ -316,19 +332,19 @@ u1=u0+u2
 call fun_entropy0(mu,s0)
 midmatrix4=0
 call SFT_ktox(midmatrix3,midmatrix4)
-s3=midmatrix4(1,1,1)
+s2=midmatrix4(1,1,1)
 
 ! iny=0
 ! iny=midmatrix3(:,1,1)
 ! call intk(n_,k,iny,s3)
-! midmatrix4=0
-! call SFT_ktox(midmatrix1,midmatrix4)
-! s5=midmatrix4(1,1,1)
+midmatrix4=0
+call SFT_ktox(midmatrix1,midmatrix4)
+s4=midmatrix4(1,1,1)
 call gammg_z(mu,s5)
 
 write(13,*)'s0',s0
-write(13,*)'s2',s2,'s3',s3,'s4',s4,'s5',s5
-s1=s0+u2+s5+s3!+s4
+write(13,*)'s2',s2,'s4',s4,'s5',s5
+s1=s0+s5+u2+s2+s4
 s1=s1/t
 end subroutine modeleq
 
@@ -537,34 +553,8 @@ Subroutine intMpair(mu,beta,Mpair)
   real*8:: minl,maxl,r0(2),step,minl1,maxl1
   real*8::mu,beta,Mpair(n_,n_,2),ep
   Integer :: i, j,n0,i1,i2,i3,ncho
-  integer ndim,ncomp,flags,mineval,maxeval,key,nregions,neval,fail
-  real*8 userdata(3),epsrel,epsabs,integral,error,prob
-  integer seed,nnew,nvec
-  ! real*8 flatness
-  character*(*) statefile
-  integer*8 spin
-  parameter (spin = -1)
-  parameter (statefile = "")
-  parameter (nvec = 1)
-  parameter (ndim = 2)
-  parameter (ncomp = 1)
-  parameter (epsrel = 1.0D-5)
-  parameter (epsabs = 1.0D-5)
-  parameter (flags = 4)
-  parameter (mineval = 1000)
-  parameter (maxeval = 80000)
-  parameter (key = 13)
-  parameter (seed = 0)
-  ! parameter (nnew = 100)
-  ! parameter (flatness = 1.0D2)
   real*8::time0,time1
-!-----------------------------------------------
-! do i1=1,n_
-!   ncho=i1-1
-!   if (4.0D0*mu <= k(i1)**2) exit
-! end do
-!-----------------------------------------------
-  !mu = mu-vext
+  real*8::xx(2*n_-2),yy1(2*n_-2),y11(2*n_-2),mid(4)
 
   minl = 0.0D0
   maxl = 1.0D2
@@ -603,41 +593,26 @@ Subroutine intMpair(mu,beta,Mpair)
   end do
   !$OMP END DO
   !$OMP END PARALLEL
-  ! time1=omp_get_wtime()
-  ! write(*,*) "Work took", time1-time0, "seconds"
+  time1=omp_get_wtime()
+  write(*,*) "Work took", time1-time0, "seconds"
 ! ----------------- bome(n_)=0-----------
-  ! do i1=1,ncho
-      ! userdata(1) = mu
-      ! userdata(2) = beta
-      ! userdata(3) = k(i1)
-      ! call cuhre(ndim,ncomp,fpi,userdata,nvec,epsrel,epsabs,flags,mineval,maxeval,key,statefile,spin,nregions,neval,fail,integral,error,prob)
-      ! Mpair(i1,n_,1)=integral
-      ! Mpair(i1,n_,2)=0.0D0
+! xx(1:n_-1)=-bome((n_-1):1:-1)
+! xx(n_:2*n_-2)=bome(1:n_-1)
+! do i1=1,n_
+!  do i2=1,n_-1
+!    yy1(n_-i2)=Mpair(i1,i2,1)     !  y1: real part
+!    yy1(n_+i2-1)=Mpair(i1,i2,1)
+!  end do
+!  call spline(xx,yy1,2*n_-2,y11)            ! y11: y1''
+!
+!  mid(1)=yy1(n_-1)
+!  mid(2)=(yy1(n_)-yy1(n_-1))/(xx(n_)-xx(n_-1))-(xx(n_)-xx(n_-1))*(2.0D0*y11(n_-1)+y11(n_))/6.0D0
+!  mid(3)=y11(n_-1)/2.0D0
+!  mid(4)=(y11(n_)-y11(n_-1))/(xx(n_)-xx(n_-1))/6.0D0
+!  Mpair(i1,n_,1)=mid(1)-mid(2)*xx(n_-1)+mid(3)*xx(n_-1)**2-mid(4)*xx(n_-1)**3
+!  Mpair(i1,n_,2)=0D0
+! enddo
 
-      ! r0 = 0.0D0
-      ! minl1=4.0D0
-      ! maxl1=1.0D3
-      ! n0=1000
-      ! step=(maxl1-minl1)/dble(n0)
-      ! a = minl1
-      ! b = minl1 + step
-      ! do i3 = 1,n0
-      !   answer = 0
-      !   Do j = 1, nk
-      !     Do i = 1, nk
-      !       answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k(i1),0.0D0)
-      !     End Do
-      !   End Do
-      !   answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
-      !   r0 = r0+answer
-      !   a = b
-      !   b = b+step
-      ! end do
-      ! Mpair(i1,n_,1)=Mpair(i1,n_,1)+r0(1)
-      ! Mpair(i1,n_,2)=0.0D0!Mpair(i1,1,2)+r0(2)
-      ! Mpair(i1,n_,1)=0D0
-      ! Mpair(i1,n_,2)=0D0
-  ! end do
   !!$OMP DO PRIVATE(i1,i3,i,j,ep,minl,maxl,n0,step,r0,a,b,answer) REDUCTION(+:Mpair) SCHEDULE(DYNAMIC,1)
 do i1=1,n_
   ep=k(i1)**2-4.0D0*mu
@@ -735,8 +710,6 @@ else
 end do
    !!$OMP END DO
    !!$OMP END PARALLEL
-   time1=omp_get_wtime()
-   write(*,*) "Work took", time1-time0, "seconds"
 !----------------------------------------
   Mpair=Mpair*0.025330296D0
 contains
@@ -764,6 +737,7 @@ contains
      ferm1=1.0D0/(exp(ep1*beta)+1.0D0)
      ferm2=1.0D0/(exp(ep2*beta)+1.0D0)
      y1=(-ferm1-ferm2)*k0**2/(2D0*k0**2-2D0*mu+q**2/2D0)
+     ! y1=(-ferm1-ferm2)*k0**2/(ep1+ep2)
    End Function y1
 
   function fpi(ndim,x,ncomp,rr,userdata)
@@ -800,8 +774,8 @@ subroutine intgamma(mu,gamma0)
   use omp_lib
   Implicit None
   Real*8 :: a, b, answer
-  real*8 minl,maxl,r0,step,ep
-  real*8::mu,vext,gamma0(n_,n_,2)
+  real*8 minl,maxl,r0,step,ep,ep1
+  real*8::mu,gamma0(n_,n_,2)
   Integer :: i,j,n0,i1,i2,i3
   real*8::time0,time1
   !-------------------------
@@ -897,7 +871,25 @@ subroutine intgamma(mu,gamma0)
   !$OMP END PARALLEL DO
   time1=omp_get_wtime()
   write(*,*) "Work took", time1-time0, "seconds"
-
+  !--------------------------------------------------------
+  !--------------------------------------------------------
+  if (eta .gt. 0.0D0) then
+    do i1=1,n_
+      do i2=1,n_
+        ep1 = -2.0D0*eta**2+0.5D0*k(i1)**2-2.0D0*mu
+        if (abs(ep1) .lt. 1.0D-4) then
+          gamma0(i1,i2,1) = gamma0(i1,i2,1)
+        else
+          if (ep1 .lt. 0.0D0 ) then
+            gamma0(i1,i2,1) = gamma0(i1,i2,1)-32.0D0*pi*eta*exp(tau(i2)*ep1)/(exp(ep1/t)-1.0D0)
+          else
+            gamma0(i1,i2,1) = gamma0(i1,i2,1)-32.0D0*pi*eta*exp(tau(i2)*ep1-ep1/t)/(-exp(-ep1/t)+1.0D0)
+          endif
+        endif
+      enddo
+    enddo
+  end if
+  !--------------------------------------------------------
 contains
   Function y(z,mu,q,tau0) !被积函数
      Implicit none
