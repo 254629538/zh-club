@@ -35,7 +35,7 @@ enddo
 !---------------------------------------
 ! define  M(q,omrgaB)=M0+M1
  call intMpair(mu,beta,Mpair)
- write(12,*)'Mpair=',Mpair(:,n_,1)
+ write(12,*)'Mpair=',cmplx(Mpair(:,n_,1),Mpair(:,n_,2))
 !define M0(q,omegaB) = -1/16pi*sqrt(ep-2i*omegaB)
 ep = 0.0D0
 mid = cmplx(0.0D0,0.0D0)
@@ -47,21 +47,20 @@ do i1 = 1,n_
     Mpair0(i1,i2,2) = -aimag(mid)
   enddo
 enddo
-Mpair0(:,n_,2) = 0D0
-write(12,*)'Mpair0=',Mpair0(1,:,1)
+! do i1 = 1,n_
+!   ep  = k(i1)**2-4.0D0*mu
+!   if(ep>0) then
+!     Mpair0(i1,n_,1) = -0.01989436789D0*sqrt(ep)
+!     Mpair0(i1,n_,2) = 0D0
+!   endif
+! enddo
+! Mpair0(:,n_,2) = 0D0
+write(12,*)'Mpair0=',cmplx(Mpair0(:,n_,1),Mpair0(:,n_,2))
 !-------------------------------------------
 call intgamma(mu,gamma0)
 ! write(12,*)'gamma0',gamma0(1,:,1)
 call SFT_ktox(gamma0,gamma0_xt)
 !---------------------------------------
-! do i1 = 1,n_
-!   do i2 = 1,n_
-!     if (ieee_is_nan(gamma0_xt(i1,i2,1))) then
-!       write(10,*)'gamma0',gamma0(:,:,1)
-!       pause
-!     end if
-!   enddo
-! enddo
 !------------------------------------------------------------
 ! write(13,*)'gamma0_xt',gamma0_xt(1,:,1)
 
@@ -128,7 +127,7 @@ do i1 = 1,n_
   enddo
 enddo
 m11=midmatrix2
-write(12,*)'pi_q',pi_q(1,:,1)
+write(12,*)'pi_q',cmplx(pi_q(:,n_,1),pi_q(:,n_,2))
 write(12,*)'m11',m11(1,:,1)
 !-----------------------------------------------------------------
 !define gamma(q,omegaB) = gamma_q = 1/(eta/(8pi)+Mpair)
@@ -143,14 +142,18 @@ do i1 = 1,n_
   enddo
 enddo
 
-! do i1 = 1,n_
-!   if (abs(midmatrix3(i1,n_,1))>=20D0) then
-!     midmatrix3(i1,n_,1)=0D0
-!   endif
-! enddo
+ep = 0.0D0
+do i1=1,n_
+  ep = k(i1)**2-4.0D0*mu
+  if (ep<0) then
+    call gammabome0(mu,beta,ep,k(i1),midmatrix2(i1,n_,:),midmatrix3(i1,n_,1))
+    midmatrix3(i1,n_,2)=0D0
+  end if
+end do
 
-write(12,*)'gamma_q',gamma_q(1,:,1)
+write(12,*)'gamma_q',gamma_q(:,n_,1)
 write(12,*)'midmatrix3',midmatrix3(:,n_,1)
+
 !define gamma(q,tau) = gamma1+gamma0
 call SFT_omegaBtotau(midmatrix3,midmatrix4,beta)
 write(12,*)'gamma1',midmatrix4(1,:,1)
@@ -274,6 +277,14 @@ do i1 = 1,n_
     ! lnG0(i1)=2D0*t*log(exp(-ep/t)+1.0D0)
   enddo
 enddo
+
+do i1=1,n_
+  ep = k(i1)**2-4.0D0*mu
+  if (ep<0) then
+    call logbome0(mu,beta,ep,k(i1),m11(i1,n_,:),midmatrix4(i1,n_,1))
+    midmatrix4(i1,n_,2)=0D0
+  end if
+end do
 
 write(12,*)'midmatrix4',midmatrix4(:,n_,1)
 !------------------------------
@@ -616,7 +627,7 @@ Subroutine intMpair(mu,beta,Mpair)
   !!$OMP DO PRIVATE(i1,i3,i,j,ep,minl,maxl,n0,step,r0,a,b,answer) REDUCTION(+:Mpair) SCHEDULE(DYNAMIC,1)
 do i1=1,n_
   ep=k(i1)**2-4.0D0*mu
-  if (ep<0) then
+ if (ep<0) then
   minl = 0.0D0
   maxl = sqrt(mu-k(i1)**2/4D0)-1D-3
   n0 = 10
@@ -683,6 +694,7 @@ do i1=1,n_
   Mpair(i1,n_,1)=Mpair(i1,n_,1)+r0(1)
   Mpair(i1,n_,2)=0.0D0
 else
+! if (ep>0) then
   minl = 0.0D0
   maxl = 1.0D2
   n0=1000
@@ -1212,3 +1224,243 @@ contains
    y3=0
  End Function y3
 end subroutine intself
+
+
+Subroutine gammabome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
+  Use gsld
+  use vec
+  use formidconstant
+  use omp_lib
+  Implicit None
+  Real*8:: a, b, a1, b1, answer(2)
+  real*8:: minl,maxl,r0(2),step,minl1,maxl1
+  real*8::mu,beta,ep,k0,midmatrix2(2),gamma1_b0
+  real*8::Mpair(12,2),Mpair0(12,2),gamma_q(12,2),pi_q(12,2),midmatrix3(12,2)
+  Integer:: i,j,n0,i1,i2,i3
+  real*8::omega(12)
+  complex*16::mid
+
+  gamma1_b0=0D0
+  !----------------------------------------
+  omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
+
+
+
+  minl = 0.0D0
+  maxl = 1.0D2
+  a1 = -1.0D0
+  b1 = 1.0D0
+  n0 = 1000
+  step = (maxl-minl)/dble(n0)
+
+  ! do i1=1,ncho
+    do i2=1,12
+      a = minl
+      b = minl + step
+      r0 = 0.0D0
+      do i3 = 1,n0
+        answer = 0
+        Do j = 1, nk
+          Do i = 1, nk
+    	      answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+          End Do
+        End Do
+        answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+        r0 = r0+answer
+        a = b
+        b = b+step
+      end do
+      Mpair(i2,1)=r0(1)*0.025330296D0
+      Mpair(i2,2)=r0(2)*0.025330296D0
+    enddo
+  ! end do
+!----------------------------------------
+  do i2 = 1,12
+    mid = cmplx(0.01989436789D0,0.0D0)*sqrt(cmplx(ep,-2.0D0*omega(i2)))
+    Mpair0(i2,1) = -real(mid)
+    Mpair0(i2,2) = -aimag(mid)
+  enddo
+!----------------------------------------
+  do i2 = 1,12
+    pi_q(i2,1) = eta+8D0*pi*(Mpair(i2,1)+Mpair0(i2,1)+midmatrix2(1))
+    pi_q(i2,2) = 8D0*pi*(Mpair(i2,2)+Mpair0(i2,2)+midmatrix2(2))
+  enddo
+!-----------------------------------------------------------------
+  do i2 = 1,12
+  mid = cmplx(8.0D0*pi,0.0D0)/cmplx(pi_q(i2,1),pi_q(i2,2))
+  gamma_q(i2,1) = real(mid)
+  gamma_q(i2,2) = aimag(mid)
+  mid = cmplx(8.0D0*pi,0.0D0)/cmplx(eta+8D0*pi*Mpair0(i2,1),8D0*pi*Mpair0(i2,2))
+  midmatrix3(i2,1) = gamma_q(i2,1) - real(mid)
+  midmatrix3(i2,2) = gamma_q(i2,2) - aimag(mid)
+  enddo
+
+  call int6p(midmatrix3(:,1),omega,gamma1_b0)
+  ! write(*,*)'mid3',cmplx(midmatrix3(:,1),midmatrix3(:,2))
+  ! write(*,*)'gamma1_b0',gamma1_b0
+
+contains
+ subroutine int6p(inmatrix,omega,y)
+   Use gsld
+   use interpolation
+   implicit none
+   real*8::inmatrix(12),omega(12),y
+   real*8:: a,b,answer,minl,maxl,r0,step,tx,ty
+   Integer :: i,n0,i3
+
+   minl = omega(1)
+   maxl = omega(12)
+   n0 = 10
+   step = (maxl-minl)/dble(n0)
+
+   a = minl
+   b = minl + step
+   r0 = 0.0D0
+   do i3 = 1,n0
+     answer = 0
+     Do i = 1, nk
+       tx=(a+b)/2.0D0+(b-a)/2.0D0*fn1(i)
+       call solve(11,omega,inmatrix,0D0,0D0,tx,ty)
+       answer = answer + ak1(i)*ty
+     End Do
+     answer = answer*(b-a)/2.0D0
+     r0 = r0+answer
+     a = b
+     b = b+step
+   end do
+   y=2D0*r0
+ end subroutine int6p
+
+
+ Function y(k0,the,mu,beta,q,omega)
+    Implicit none
+    Real*8:: y(2)
+    Real*8:: k0,the,mu,ep1,ep2,ferm1,ferm2,beta,q,omega
+    complex*16::mid
+    ep1=k0**2-mu+q**2/4D0-k0*q*the
+    ep2=k0**2-mu+q**2/4D0+k0*q*the
+    ferm1=1.0D0/(exp(ep1*beta)+1.0D0)
+    ferm2=1.0D0/(exp(ep2*beta)+1.0D0)
+    mid=cmplx((-ferm1-ferm2)*k0**2,0.0D0)/cmplx(ep1+ep2,-omega)
+
+    y(1)=real(mid)
+    y(2)=aimag(mid)
+  End Function y
+End subroutine gammabome0
+
+Subroutine logbome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
+  Use gsld
+  use vec
+  use formidconstant
+  use omp_lib
+  Implicit None
+  Real*8:: a, b, a1, b1, answer(2)
+  real*8:: minl,maxl,r0(2),step,minl1,maxl1
+  real*8::mu,beta,ep,k0,midmatrix2(2),gamma1_b0
+  real*8::Mpair(12,2),Mpair0(12,2),midmatrix3(12,2)
+  Integer:: i,j,n0,i1,i2,i3
+  real*8::omega(12)
+  complex*16::mid,mid2
+
+  gamma1_b0=0D0
+  !----------------------------------------
+  omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
+  ! omega(1)=0.1D0*pi/beta
+  ! do i=1,5
+  !   omega(i+1)=dble(2*i)*pi/beta/10D0
+  ! enddo
+
+  minl = 0.0D0
+  maxl = 1.0D2
+  a1 = -1.0D0
+  b1 = 1.0D0
+  n0 = 1000
+  step = (maxl-minl)/dble(n0)
+
+  ! do i1=1,ncho
+    do i2=1,12
+      a = minl
+      b = minl + step
+      r0 = 0.0D0
+      do i3 = 1,n0
+        answer = 0
+        Do j = 1, nk
+          Do i = 1, nk
+    	      answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+          End Do
+        End Do
+        answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+        r0 = r0+answer
+        a = b
+        b = b+step
+      end do
+      Mpair(i2,1)=r0(1)*0.025330296D0
+      Mpair(i2,2)=r0(2)*0.025330296D0
+    enddo
+  ! end do
+!----------------------------------------
+  do i2 = 1,12
+    mid = cmplx(0.01989436789D0,0.0D0)*sqrt(cmplx(ep,-2.0D0*omega(i2)))
+    Mpair0(i2,1) = -real(mid)
+    Mpair0(i2,2) = -aimag(mid)
+  enddo
+!----------------------------------------
+do i2=1,12
+  mid2=cmplx(eta+8D0*pi*Mpair0(i2,1),8D0*pi*Mpair0(i2,2))
+  mid=log(cmplx(1D0,0D0)+8D0*pi*cmplx(Mpair(i2,1)+midmatrix2(1),Mpair(i2,2)+midmatrix2(2))/mid2)
+  midmatrix3(i2,1)=-real(mid)
+  midmatrix3(i2,2)=-aimag(mid)
+enddo
+
+  call int6p(midmatrix3(:,1),omega,gamma1_b0)
+  ! write(*,*)'mid3',cmplx(midmatrix3(:,1),midmatrix3(:,2))
+  ! write(*,*)'gamma1_b0',gamma1_b0
+
+contains
+ subroutine int6p(inmatrix,omega,y)
+   Use gsld
+   use interpolation
+   implicit none
+   real*8::inmatrix(12),omega(12),y
+   real*8:: a,b,answer,minl,maxl,r0,step,tx,ty
+   Integer :: i,n0,i3
+
+   minl = omega(1)
+   maxl = omega(12)
+   n0 = 10
+   step = (maxl-minl)/dble(n0)
+
+   a = minl
+   b = minl + step
+   r0 = 0.0D0
+   do i3 = 1,n0
+     answer = 0
+     Do i = 1, nk
+       tx=(a+b)/2.0D0+(b-a)/2.0D0*fn1(i)
+       call solve(11,omega,inmatrix,0D0,0D0,tx,ty)
+       answer = answer + ak1(i)*ty
+     End Do
+     answer = answer*(b-a)/2.0D0
+     r0 = r0+answer
+     a = b
+     b = b+step
+   end do
+   y=2D0*r0
+ end subroutine int6p
+
+
+ Function y(k0,the,mu,beta,q,omega)
+    Implicit none
+    Real*8:: y(2)
+    Real*8:: k0,the,mu,ep1,ep2,ferm1,ferm2,beta,q,omega
+    complex*16::mid
+    ep1=k0**2-mu+q**2/4D0-k0*q*the
+    ep2=k0**2-mu+q**2/4D0+k0*q*the
+    ferm1=1.0D0/(exp(ep1*beta)+1.0D0)
+    ferm2=1.0D0/(exp(ep2*beta)+1.0D0)
+    mid=cmplx((-ferm1-ferm2)*k0**2,0.0D0)/cmplx(ep1+ep2,-omega)
+
+    y(1)=real(mid)
+    y(2)=aimag(mid)
+  End Function y
+End subroutine logbome0

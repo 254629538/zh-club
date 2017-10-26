@@ -70,7 +70,7 @@ case(3)
   !   xx(j) = 2.0D0*dble(dint(exp(dble(j-n)/dble(n_-n)*5.0D0+4.5D0)-exp(4.5D0))+j)*pi/beta
   ! enddo
   ! xx(n_)=0D0
-  do j = n+1,n_
+  do j = n+1,n_-1
     xx(j)=2.0D0*dble(dint(sinh(0.020D0*dble(j))/0.020D0)+j-n)*pi/beta
   end do
   xx(n_)=0D0
@@ -679,6 +679,7 @@ do i1=1,n_
  mid(3,1)=y11(n_-1)/2.0D0
  mid(4,1)=(y11(n_)-y11(n_-1))/(xx(n_)-xx(n_-1))/6.0D0
  bo0=mid(1,1)-mid(2,1)*xx(n_-1)+mid(3,1)*xx(n_-1)**2-mid(4,1)*xx(n_-1)**3
+ ! bo0=(2D0*inmatrix(i1,n_,1))/(1D0-sqrt(1D0-4D0*pi**2*inmatrix(i1,n_,1)**2*bome(n_)**2))
 
 do i3=1,n_!ncho1
   In0=0;In1=0;In2=0;In3=0
@@ -731,7 +732,7 @@ do i3=1,n_!ncho1
   !  f1(i3)=dot_product(a,In0)+dot_product(b,In1)+dot_product(c,In2)+dot_product(d,In3)
    !f0(i3)=a(1)*In0(1)+b(1)*In1(1)+c(1)*In2(1)+d(1)*In3(1)
    !outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3))-real(f0(i3)))/(2.0D0*pi)                    !n from -inf to inf  except 0!!
-   outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3)))/(2.0D0*pi)+bo0/beta!inmatrix(i1,n_,1)/beta!bo0/beta
+   outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3)))/(2.0D0*pi)+inmatrix(i1,n_,1)/beta!bo0/beta
    outmatrix(i1,i3,2)=0.0D0!aimag(cmplx(inmatrix(i1,1,1),inmatrix(i1,1,2))*exp(cmplx(0.0D0,-bome(1)*tau(i3))))/beta
 end do
 
