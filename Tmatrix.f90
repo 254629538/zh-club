@@ -27,62 +27,43 @@ select case(m)
 case(1)
   n=n_/2
 do j = 1,n
-   xx(j) =sinh(0.02D0*dble(j))/sinh(0.02D0*dble(n))*(beta/2.0D0-0.03D0)+1.0D0/beta/150.0D0!dble(j)/dble(n)*exp(-dble(n-j)/dble(n))*(beta/2.0D0-0.02D0)
-  !xx(n+1-j)=(1.0D0-exp(-dble(n-j)/dble(n)*5.0D0))*beta/2.0D0+0.01D0
+  ! xx(j) =(dble(j)/dble(n))**1.5D0*(beta/2.0D0-0.03D0) !sinh(0.088D0*dble(j))/sinh(0.088D0*dble(n))*(beta/2.0D0-0.03D0)+1.0D0/beta/150.0D0         !!!!!!! n_=100
+  ! xx(j) =sinh(0.02D0*dble(j))/sinh(0.02D0*dble(n))*(beta/2.0D0-0.03D0)+1.0D0/beta/150.0D0      !!!!!!! n_=300
+   xx(j) =(dble(j)/dble(n))**1.25D0*(beta/2.0D0-0.02D0)+1.0D0/beta/150.0D0
 enddo
 do j=n+1,n_
   xx(j) = beta - xx(n_+1-j)
 end do
 
-! do j=1,n_
-!   xx(j)=(beta-0.01D0)*dble(j)/dble(n_)
-! end do
-! do j=1,n_
-!   xx(j)=(beta-0.02D0)*exp(-dble(n_-j)/dble(n_)*5.5D0)
-! end do
   !   omegaF  (2n+1)pi/beta  n: e^0~e^8
 case(2)
   n=20!n_/2
   do j = 1,n
     xx(j)=dble(2*j-1)*pi/beta
   enddo
-  ! !xx(n+1)=dble(2*(n+3)-1)*pi/beta
-  ! do j = n+1,n_
-  !   xx(j) = (2.0D0*dble(dint(exp(dble(j-n)/dble(n_-n)*5.0D0+4.5D0)-exp(4.5D0))+j)-1.0D0)*pi/beta
-  ! enddo
+
   do j = n+1,n_
-    xx(j)=(2.0D0*dble(dint(sinh(0.020D0*dble(j))/0.020D0)+j-n)-1.0D0)*pi/beta
+    ! xx(j)=(2.0D0*dble(dint(sinh(0.077D0*dble(j-n))/0.077D0)+j)-1.0D0)*pi/beta                  !  n_=100
+    xx(j)=(2.0D0*dble(dint(sinh(0.019D0*dble(j-n))/0.019D0)+j)-1.0D0)*pi/beta                 !  n_=300
   end do
-! do j = n+1,n_
-!   xx(j) = (2.0D0*(exp(dble(j-n)/dble(n_-n)*8.0D0)+dble(j)-1.0D0)-1.0D0)*pi/beta
-! enddo
-! do j = 1,n_
-!   xx(j) = (2.0D0*(exp(dble(j-1)/dble(n_-1)*12.0D0)+dble(j)-1.0D0)-1.0D0)*pi/beta
-! enddo
+
   !   omegaB  (2n)pi/beta  n: e^0~e^8
 case(3)
   n=20
   do j = 1,n
     xx(j)=dble(2*j)*pi/beta
   enddo
-  ! !xx(n+1)=dble(2*(n+3))*pi/beta
-  ! do j = n+1,n_-1
-  !   xx(j) = 2.0D0*dble(dint(exp(dble(j-n)/dble(n_-n)*5.0D0+4.5D0)-exp(4.5D0))+j)*pi/beta
-  ! enddo
-  ! xx(n_)=0D0
+
   do j = n+1,n_-1
-    xx(j)=2.0D0*dble(dint(sinh(0.020D0*dble(j))/0.020D0)+j-n)*pi/beta
+      ! xx(j)=2.0D0*dble(dint(sinh(0.077D0*dble(j-n))/0.077D0)+j)*pi/beta
+    xx(j)=2.0D0*dble(dint(sinh(0.019D0*dble(j-n))/0.019D0)+j)*pi/beta                       !   n_=300
   end do
   xx(n_)=0D0
-! do j = n+1,n_
-!   xx(j) = 2.0D0*(exp(dble(j-n)/dble(n_-n)*8.0D0)+dble(j)-1.0D0)*pi/beta
-! enddo
 
   !   k  0-e^6 in logarithmic scales
 case(4)
 do j = 1,n_
-  !xx(j) = dble(j)/dble(n_)*exp(dble(j)/dble(n_)*7.0D0)!-1.0D0
-   xx(j) = exp(dble(j)/dble(n_)*6.5D0)-1.02D0                           !         !!! n=500::  -1.01D0 ； n=300:  -1.02D0
+   xx(j) = exp(dble(j)/dble(n_)*6.5D0)-1.02D0                           !         !!! n=500::  -1.01D0 ； n=300:  -1.02D0   n=100  -1.065D0
 enddo
 
 end select
@@ -732,7 +713,7 @@ do i3=1,n_!ncho1
   !  f1(i3)=dot_product(a,In0)+dot_product(b,In1)+dot_product(c,In2)+dot_product(d,In3)
    !f0(i3)=a(1)*In0(1)+b(1)*In1(1)+c(1)*In2(1)+d(1)*In3(1)
    !outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3))-real(f0(i3)))/(2.0D0*pi)                    !n from -inf to inf  except 0!!
-   outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3)))/(2.0D0*pi)+inmatrix(i1,n_,1)/beta!bo0/beta
+   outmatrix(i1,i3,1)=outmatrix(i1,i3,1)+(2.0D0*real(f1(i3)))/(2.0D0*pi)+bo0/beta!inmatrix(i1,n_,1)/beta!bo0/beta
    outmatrix(i1,i3,2)=0.0D0!aimag(cmplx(inmatrix(i1,1,1),inmatrix(i1,1,2))*exp(cmplx(0.0D0,-bome(1)*tau(i3))))/beta
 end do
 
@@ -944,31 +925,32 @@ program main
   use Solve_NonLin
   use formidconstant
   implicit none
-  real*8 beta,mu,num
+  real*8 beta,mu,num,tau,mu0(7)
   real*8 x(1),fvec(1),diag(1)
   integer info,i
 
   t=0.2D0
   ! beta=1.0D0/t
-  eta=-0.1D0!-0.07D0
+  eta=-0.01D0!-0.07D0
   ntot=2.0D5
   lambda= 0.045D0
   omega0=1.0D0/(3.0D0*lambda*ntot)**(1.0D0/3.0D0)
 
-mu=0.5D0
-do i=1,15
+mu0=(/ 0.511307202849039,0.481587047456246,0.445527545960040,0.401042128677277,0.352274390465582,0.296395028343973,0.234436842966283  /)
+! mu=0.529767232498490
+do i=1,7
   write(14,*)i
   write(14,*)'t=',t
   write(13,*)i
   write(13,*)'t=',t
 x(1)=mu
-! do i=1,5
-! call partinum(mu,num)
-! fvec(1)=(num-ntot)/ntot
-call hbrd(formu,1,x,fvec,1.0D-2,1.0D-3,info,diag)
-write(14,*)'mu=',x(1)
-mu=x(1)-0.05D0
+
+! call hbrd(formu,1,x,fvec,1.0D-2,1.0D-3,info,diag)
+write(14,*)'mu=',mu0(i)!x(1)
+call rate0(mu0(i),tau)
+write(14,*)'tau=',tau
 write(*,*)'fvec=',fvec(1)
+mu=x(1)-0.05D0
 t=t+0.05D0
 end do
 contains
@@ -1022,7 +1004,7 @@ end program main
 !   ! do j = 1,30
 !   !   x(j) = exp(dble(j)/dble(30)*5.0D0)-1.0D0
 !   ! enddo
-!   !!!!!!$OMP DO
+!   ! !!!!!$OMP DO
 !   ! do i=1,30
 !   ! write(12,*)'i=',i
 !   ! write (*,*) "i=",i

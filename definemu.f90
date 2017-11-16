@@ -301,7 +301,7 @@ call SFT_omegaFtotau(midmatrix2,midmatrix3,beta)
 ! call SFT_omegaFtotau(midmatrix1,midmatrix2,beta)
 ! ! write(13,*)'s2=',midmatrix2(:,1,1)
 midmatrix1=0.0D0
-call SFT_omegaBtotau1(midmatrix4,midmatrix1,beta)
+call SFT_omegaBtotau(midmatrix4,midmatrix1,beta)
 ! write(13,*)'s3=',midmatrix1(:,1,1)
 tau=-tau
 
@@ -1235,15 +1235,17 @@ Subroutine gammabome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
   Real*8:: a, b, a1, b1, answer(2)
   real*8:: minl,maxl,r0(2),step,minl1,maxl1
   real*8::mu,beta,ep,k0,midmatrix2(2),gamma1_b0
-  real*8::Mpair(12,2),Mpair0(12,2),gamma_q(12,2),pi_q(12,2),midmatrix3(12,2)
+  real*8::Mpair(20,2),Mpair0(20,2),gamma_q(20,2),pi_q(20,2),midmatrix3(20,2)
   Integer:: i,j,n0,i1,i2,i3
-  real*8::omega(12)
+  real*8::omega(20)
   complex*16::mid
 
   gamma1_b0=0D0
   !----------------------------------------
-  omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
-
+  ! omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
+  omega(1:5)=(/ 0.0002D0*pi/beta,0.001D0*pi/beta,0.0016D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta /)
+  omega(6:10)=(/ 0.016D0*pi/beta,0.02D0*pi/beta,0.04D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta /)
+  omega(11:20)=(/ 0.2D0*pi/beta,0.3D0*pi/beta,0.36D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,0.7D0*pi/beta,0.8D0*pi/beta,0.9D0*pi/beta,1D0*pi/beta /)
 
 
   minl = 0.0D0
@@ -1253,40 +1255,88 @@ Subroutine gammabome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
   n0 = 1000
   step = (maxl-minl)/dble(n0)
 
-  ! do i1=1,ncho
-    do i2=1,12
-      a = minl
-      b = minl + step
-      r0 = 0.0D0
-      do i3 = 1,n0
-        answer = 0
-        Do j = 1, nk
-          Do i = 1, nk
-    	      answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
-          End Do
+
+  do i2=1,20
+    minl = 0.0D0
+    maxl = sqrt(-ep/4D0)-1D-4
+    n0 = 10
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer=answer+ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
         End Do
-        answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
-        r0 = r0+answer
-        a = b
-        b = b+step
-      end do
-      Mpair(i2,1)=r0(1)*0.025330296D0
-      Mpair(i2,2)=r0(2)*0.025330296D0
-    enddo
-  ! end do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=r0(1)
+    Mpair(i2,2)=r0(2)
+
+    minl = sqrt(-ep/4D0)+1D-4
+    maxl = 2.0D0*sqrt(-ep/4D0)
+    n0 = 10
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+        End Do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=Mpair(i2,1)+r0(1)
+    Mpair(i2,2)=Mpair(i2,2)+r0(2)
+
+    minl = 2.0D0*sqrt(-ep/4D0)
+    maxl = 1.0D2
+    n0 = 1000
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+        End Do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=Mpair(i2,1)+r0(1)
+    Mpair(i2,2)=Mpair(i2,2)+r0(2)
+  enddo
+  Mpair=Mpair*0.025330296D0
 !----------------------------------------
-  do i2 = 1,12
+  do i2 = 1,20
     mid = cmplx(0.01989436789D0,0.0D0)*sqrt(cmplx(ep,-2.0D0*omega(i2)))
     Mpair0(i2,1) = -real(mid)
     Mpair0(i2,2) = -aimag(mid)
   enddo
 !----------------------------------------
-  do i2 = 1,12
+  do i2 = 1,20
     pi_q(i2,1) = eta+8D0*pi*(Mpair(i2,1)+Mpair0(i2,1)+midmatrix2(1))
     pi_q(i2,2) = 8D0*pi*(Mpair(i2,2)+Mpair0(i2,2)+midmatrix2(2))
   enddo
 !-----------------------------------------------------------------
-  do i2 = 1,12
+  do i2 = 1,20
   mid = cmplx(8.0D0*pi,0.0D0)/cmplx(pi_q(i2,1),pi_q(i2,2))
   gamma_q(i2,1) = real(mid)
   gamma_q(i2,2) = aimag(mid)
@@ -1304,12 +1354,12 @@ contains
    Use gsld
    use interpolation
    implicit none
-   real*8::inmatrix(12),omega(12),y
+   real*8::inmatrix(20),omega(20),y
    real*8:: a,b,answer,minl,maxl,r0,step,tx,ty
    Integer :: i,n0,i3
 
    minl = omega(1)
-   maxl = omega(12)
+   maxl = omega(20)
    n0 = 10
    step = (maxl-minl)/dble(n0)
 
@@ -1320,7 +1370,7 @@ contains
      answer = 0
      Do i = 1, nk
        tx=(a+b)/2.0D0+(b-a)/2.0D0*fn1(i)
-       call solve(11,omega,inmatrix,0D0,0D0,tx,ty)
+       call solve(19,omega,inmatrix,0D0,0D0,tx,ty)
        answer = answer + ak1(i)*ty
      End Do
      answer = answer*(b-a)/2.0D0
@@ -1357,18 +1407,17 @@ Subroutine logbome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
   Real*8:: a, b, a1, b1, answer(2)
   real*8:: minl,maxl,r0(2),step,minl1,maxl1
   real*8::mu,beta,ep,k0,midmatrix2(2),gamma1_b0
-  real*8::Mpair(12,2),Mpair0(12,2),midmatrix3(12,2)
+  real*8::Mpair(20,2),Mpair0(20,2),midmatrix3(20,2)
   Integer:: i,j,n0,i1,i2,i3
-  real*8::omega(12)
+  real*8::omega(20)
   complex*16::mid,mid2
 
   gamma1_b0=0D0
   !----------------------------------------
-  omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
-  ! omega(1)=0.1D0*pi/beta
-  ! do i=1,5
-  !   omega(i+1)=dble(2*i)*pi/beta/10D0
-  ! enddo
+  ! omega=(/ 0.0002D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta,0.02D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta,0.2D0*pi/beta,0.3D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,1D0*pi/beta /)
+  omega(1:5)=(/ 0.0002D0*pi/beta,0.001D0*pi/beta,0.0016D0*pi/beta,0.002D0*pi/beta,0.01D0*pi/beta /)
+  omega(6:10)=(/ 0.016D0*pi/beta,0.02D0*pi/beta,0.04D0*pi/beta,0.1D0*pi/beta,0.16D0*pi/beta /)
+  omega(11:20)=(/ 0.2D0*pi/beta,0.3D0*pi/beta,0.36D0*pi/beta,0.4D0*pi/beta,0.5D0*pi/beta,0.6D0*pi/beta,0.7D0*pi/beta,0.8D0*pi/beta,0.9D0*pi/beta,1D0*pi/beta /)
 
   minl = 0.0D0
   maxl = 1.0D2
@@ -1377,35 +1426,82 @@ Subroutine logbome0(mu,beta,ep,k0,midmatrix2,gamma1_b0)
   n0 = 1000
   step = (maxl-minl)/dble(n0)
 
-  ! do i1=1,ncho
-    do i2=1,12
-      a = minl
-      b = minl + step
-      r0 = 0.0D0
-      do i3 = 1,n0
-        answer = 0
-        Do j = 1, nk
-          Do i = 1, nk
-    	      answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
-          End Do
+  do i2=1,20
+    minl = 0.0D0
+    maxl = sqrt(-ep/4D0)-1D-4
+    n0 = 10
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer=answer+ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
         End Do
-        answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
-        r0 = r0+answer
-        a = b
-        b = b+step
-      end do
-      Mpair(i2,1)=r0(1)*0.025330296D0
-      Mpair(i2,2)=r0(2)*0.025330296D0
-    enddo
-  ! end do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=r0(1)
+    Mpair(i2,2)=r0(2)
+
+    minl = sqrt(-ep/4D0)+1D-4
+    maxl = 2.0D0*sqrt(-ep/4D0)
+    n0 = 10
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+        End Do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=Mpair(i2,1)+r0(1)
+    Mpair(i2,2)=Mpair(i2,2)+r0(2)
+
+    minl = 2.0D0*sqrt(-ep/4D0)
+    maxl = 1.0D2
+    n0 = 1000
+    step = (maxl-minl)/dble(n0)
+    a = minl
+    b = minl + step
+    r0 = 0.0D0
+    do i3 = 1,n0
+      answer = 0
+      Do j=1,nk
+        Do i=1,nk
+          answer = answer + ak1(i)*ak1(j)*y((a+b)/2.0D0+(b-a)/2.0D0*fn1(i),(a1+b1)/2.0D0+(b1-a1)/2.0D0*fn1(j),mu,beta,k0,omega(i2))
+        End Do
+      End Do
+      answer = answer*(b-a)/2.0D0*(b1-a1)/2.0D0
+      r0 = r0+answer
+      a = b
+      b = b+step
+    end do
+    Mpair(i2,1)=Mpair(i2,1)+r0(1)
+    Mpair(i2,2)=Mpair(i2,2)+r0(2)
+  enddo
+  Mpair=Mpair*0.025330296D0
 !----------------------------------------
-  do i2 = 1,12
+  do i2 = 1,20
     mid = cmplx(0.01989436789D0,0.0D0)*sqrt(cmplx(ep,-2.0D0*omega(i2)))
     Mpair0(i2,1) = -real(mid)
     Mpair0(i2,2) = -aimag(mid)
   enddo
 !----------------------------------------
-do i2=1,12
+do i2=1,20
   mid2=cmplx(eta+8D0*pi*Mpair0(i2,1),8D0*pi*Mpair0(i2,2))
   mid=log(cmplx(1D0,0D0)+8D0*pi*cmplx(Mpair(i2,1)+midmatrix2(1),Mpair(i2,2)+midmatrix2(2))/mid2)
   midmatrix3(i2,1)=-real(mid)
@@ -1421,12 +1517,12 @@ contains
    Use gsld
    use interpolation
    implicit none
-   real*8::inmatrix(12),omega(12),y
+   real*8::inmatrix(20),omega(20),y
    real*8:: a,b,answer,minl,maxl,r0,step,tx,ty
    Integer :: i,n0,i3
 
    minl = omega(1)
-   maxl = omega(12)
+   maxl = omega(20)
    n0 = 10
    step = (maxl-minl)/dble(n0)
 
@@ -1437,7 +1533,7 @@ contains
      answer = 0
      Do i = 1, nk
        tx=(a+b)/2.0D0+(b-a)/2.0D0*fn1(i)
-       call solve(11,omega,inmatrix,0D0,0D0,tx,ty)
+       call solve(19,omega,inmatrix,0D0,0D0,tx,ty)
        answer = answer + ak1(i)*ty
      End Do
      answer = answer*(b-a)/2.0D0
